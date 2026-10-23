@@ -227,29 +227,37 @@ elif env_bool("USE_POSTGRES", False) or os.getenv("POSTGRES_DB"):
         }
     }
 else:
+    # No DATABASE_URL / Postgres configured. Use SQLite with a single, absolute
+    # path so the BUILD process and the running WEB PROCESS open the exact same
+    # file. Defaults to BASE_DIR / "db.sqlite3" (unchanged local behavior). Set
+    # SQLITE_PATH to override -- e.g. to a mounted Render Disk so data can survive
+    # restarts; on Render's default ephemeral filesystem the file (and all data)
+    # is lost whenever the free service restarts or redeploys.
+    _sqlite_override = os.getenv("SQLITE_PATH", "").strip().strip('"').strip("'")
+    _sqlite_name = Path(_sqlite_override) if _sqlite_override else (BASE_DIR / "db.sqlite3")
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": _sqlite_name,
         }
     }
 
-# Guard against the silent SQLite fallback in production. Render's filesystem is
-# ephemeral: a SQLite file created at build time is wiped on every restart or
-# redeploy, which surfaces at runtime as "OperationalError: no such table" for
-# auth_user, about_teammember, etc. If the site is deployed with DEBUG=False but
-# no persistent database is attached, fail fast and loudly at boot (and during
-# `manage.py migrate`) instead of serving broken pages from a throwaway SQLite.
-# Local development (DEBUG=True) is unaffected and keeps using the SQLite file.
-if not DEBUG and not _database_url and not (
-    env_bool("USE_POSTGRES", False) or os.getenv("POSTGRES_DB")
-):
+# Database persistence policy for production (DEBUG=False):
+# Render's default filesystem is EPHEMERAL. A SQLite file created and migrated
+# during a build is wiped whenever the free web service restarts or redeploys,
+# which later surfaces as "OperationalError: no such table: auth_user /
+# about_teammember". Running SQLite with DEBUG=False is therefore permitted here
+# ONLY as an explicit, temporary free demo: it serves correctly right after a
+# deploy but loses data on restarts. For durable data either attach a PostgreSQL
+# DATABASE_URL (recommended) or set DJANGO_REQUIRE_POSTGRES=True, which makes an
+# SQLite production boot fail fast instead of silently risking data loss.
+# Local development (DEBUG=True) is unaffected and always uses SQLite.
+_uses_sqlite = "sqlite3" in DATABASES["default"].get("ENGINE", "")
+if not DEBUG and _uses_sqlite and env_bool("DJANGO_REQUIRE_POSTGRES", False):
     raise ImproperlyConfigured(
-        "Production (DEBUG=False) needs a persistent database: set "
-        "DATABASE_URL to a PostgreSQL connection string (e.g. a Render or Neon "
-        "Postgres instance) before deploying. SQLite on Render's ephemeral "
-        "filesystem loses all tables on restart. Local development with "
-        "DEBUG=True is unaffected and continues to use SQLite."
+        "DJANGO_REQUIRE_POSTGRES=True but no PostgreSQL is configured. Set "
+        "DATABASE_URL to a postgres:// connection string, or unset "
+        "DJANGO_REQUIRE_POSTGRES to allow an ephemeral SQLite free-tier demo."
     )
 
 # --------------------------------------------------------------------------- #

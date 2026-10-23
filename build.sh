@@ -34,7 +34,7 @@ echo "==> Applying database migrations"
 python -c "import os; print('DATABASE_URL present:', bool(os.getenv('DATABASE_URL')))"
 python manage.py db_health
 python manage.py migrate --noinput
-echo "==> Post-migration table check"
-python manage.py db_health
+echo "==> Post-migration table check (fails build if tables missing)"
+python manage.py db_health --strict
 
 echo "==> Build complete"

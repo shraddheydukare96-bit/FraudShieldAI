@@ -155,17 +155,65 @@ WSGI_APPLICATION = "fraudshield.wsgi.application"
 # SQLite paths untouched so local development continues to work unchanged.
 # Render recommends CONN_MAX_AGE=0 (persistent connections can be dropped by the
 # proxy), so that is the default for the DATABASE_URL path.
-_database_url = os.getenv("DATABASE_URL", "").strip()
+_database_url = os.getenv("DATABASE_URL", "").strip().strip('"').strip("'")
 if _database_url:
     import dj_database_url
+    from urllib.parse import urlparse
 
-    DATABASES = {
-        "default": dj_database_url.parse(
+    # Validate BEFORE handing the value to dj_database_url.parse(), which raises a
+    # cryptic UnknownSchemeError on unsupported schemes (e.g. one beginning with
+    # "s"). We require a complete, supported PostgreSQL URL and fail with a clear,
+    # credential-safe message. Only the non-sensitive scheme token is ever echoed
+    # -- never the full URL, host, user, or password.
+    _ALLOWED_DB_SCHEMES = {"postgres", "postgresql", "postgis"}
+    _scheme = urlparse(_database_url).scheme.split("+", 1)[0].lower()
+    if "://" not in _database_url or not _scheme:
+        raise ImproperlyConfigured(
+            "DATABASE_URL is set but is not a full connection URL (no scheme). "
+            "Expected: postgres://USER:PASSWORD@HOST:PORT/DATABASE. SQLite is "
+            "not used while DATABASE_URL is present."
+        )
+    if _scheme not in _ALLOWED_DB_SCHEMES:
+        raise ImproperlyConfigured(
+            f"DATABASE_URL uses an unsupported scheme '{_scheme}://'. "
+            "FraudShieldAI requires PostgreSQL: use a postgres:// or "
+            "postgresql:// URL. SQLite is not used while DATABASE_URL is present."
+        )
+    _parsed_db = urlparse(_database_url)
+    if not _parsed_db.hostname or not (_parsed_db.path or "").strip("/"):
+        raise ImproperlyConfigured(
+            "DATABASE_URL is an incomplete PostgreSQL URL (missing host or "
+            "database name). Expected: "
+            "postgres://USER:PASSWORD@HOST:PORT/DATABASE."
+        )
+
+    try:
+        _database_config = dj_database_url.parse(
             _database_url,
             conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "0")),
             ssl_require=env_bool("DB_SSL_REQUIRE", False),
         )
-    }
+    except Exception as _exc:
+        # Turn any parse failure into a clear config error. We surface only the
+        # exception type, never the URL string (which holds credentials).
+        raise ImproperlyConfigured(
+            "DATABASE_URL could not be parsed as a PostgreSQL connection "
+            f"string ({type(_exc).__name__}). Verify it is a complete "
+            "postgres://USER:PASSWORD@HOST:PORT/DATABASE URL."
+        )
+
+    # Refuse a silent downgrade: a configured DATABASE_URL MUST resolve to a
+    # PostgreSQL backend, not SQLite/other (the "build succeeds but runtime shows
+    # no such table" failure mode).
+    _configured_engine = _database_config.get("ENGINE", "") or ""
+    if "postgresql" not in _configured_engine and "postgis" not in _configured_engine:
+        raise ImproperlyConfigured(
+            "DATABASE_URL is set but did not resolve to a PostgreSQL backend "
+            f"(got engine={_configured_engine or 'empty'}). Refusing to fall "
+            "back to SQLite while DATABASE_URL is present. Use a postgres:// "
+            "or postgresql:// connection URL."
+        )
+    DATABASES = {"default": _database_config}
 elif env_bool("USE_POSTGRES", False) or os.getenv("POSTGRES_DB"):
     DATABASES = {
         "default": {

@@ -20,6 +20,24 @@ from django.db import connection
 class Command(BaseCommand):
     help = "Report the live DB engine, resolved path/name, and present tables."
 
+    # Tables that must exist for the site to function. Used by --strict.
+    REQUIRED_TABLES = {
+        "django_migrations",
+        "auth_user",
+        "accounts_notificationpreferences",
+        "about_teammember",
+        "detection_detection",
+        "reports_report",
+    }
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--strict",
+            action="store_true",
+            help="Exit with status 1 if any required table is missing "
+            "(so a deployment build fails on an unmigrated database).",
+        )
+
     def handle(self, *args, **options):
         db = connection.settings_dict
         engine = (db.get("ENGINE") or "").rsplit(".", 1)[-1] or "unknown"
@@ -43,6 +61,8 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR(
                 f"Could not introspect tables: {type(exc).__name__}: {exc}"
             ))
+            if options.get("strict"):
+                raise SystemExit(1)
             return
 
         expected = [
@@ -73,3 +93,13 @@ class Command(BaseCommand):
                 "\nCore tables missing -> run: python manage.py migrate --noinput"
                 "\n(against the SAME database this command reports above)."
             ))
+
+        # Strict mode: fail the calling process (e.g. a build) when required
+        # tables are still absent. Reports engine/tables only - never secrets.
+        missing = sorted(self.REQUIRED_TABLES - tables)
+        if missing:
+            self.stdout.write("Missing required tables: " + ", ".join(missing))
+            if options.get("strict"):
+                raise SystemExit(1)
+        elif options.get("strict"):
+            self.stdout.write(self.style.SUCCESS("All required tables present."))

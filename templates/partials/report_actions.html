@@ -1,0 +1,42 @@
+{# Report action buttons. Include with: report, email_state, next_path #}
+<div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+  <a class="btn btn-info text-dark fw-semibold" href="{% url 'reports:pdf' report.pk %}">
+    <i class="bi bi-file-earmark-pdf"></i> Download PDF Report
+  </a>
+
+  {% if email_state.eligible %}
+    <form method="post" action="{% url 'reports:send_email' report.pk %}" class="d-inline">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next_path|default:'' }}">
+      <button type="submit" class="btn btn-outline-info">
+        <i class="bi bi-envelope-paper"></i>
+        Send Report to Registered Email ({{ email_state.masked_email }})
+      </button>
+    </form>
+  {% elif email_state.reason == 'no_email' %}
+    <button type="button" class="btn btn-outline-secondary" disabled
+            title="Add a valid email address in your profile first.">
+      <i class="bi bi-envelope-slash"></i> Send Report to Registered Email
+    </button>
+    <a class="link-info small text-decoration-none" href="{% url 'accounts:profile' %}">
+      Add an email address in your profile
+    </a>
+  {% elif email_state.reason == 'not_verified' %}
+    <button type="button" class="btn btn-outline-secondary" disabled
+            title="Verify your email address before receiving reports.">
+      <i class="bi bi-envelope-slash"></i> Send Report to Registered Email
+    </button>
+    <a class="link-info small text-decoration-none" href="{% url 'accounts:verify_sent' %}">
+      Verify your email ({{ email_state.masked_email }}) first
+    </a>
+  {% elif email_state.reason == 'cooldown' %}
+    <button type="button" class="btn btn-outline-secondary" disabled
+            title="Rate limited to prevent accidental duplicate sends.">
+      <i class="bi bi-hourglass-split"></i> Sent recently - wait {{ email_state.cooldown_seconds }}s
+    </button>
+  {% endif %}
+</div>
+<p class="text-secondary small mb-0 mt-2">
+  Reports are only ever sent to your own registered, verified address.
+  Delivery status shown on this page reflects the real response from the mail server.
+</p>

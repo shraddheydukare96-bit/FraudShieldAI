@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}FraudShield AI - Protect Against Digital Fraud{% endblock %}
+
+{% block content %}
+<section class="fs-hero rounded-4 p-5 mb-5 text-center">
+  <div class="container">
+    <span class="badge text-info border border-info-subtle rounded-pill mb-3">
+      <i class="bi bi-cpu"></i> AI-Powered Cybersecurity
+    </span>
+    <h1 class="display-4 fw-bold text-white">
+      Detect Fraud Before It Reaches You
+    </h1>
+    <p class="lead text-secondary mx-auto" style="max-width: 640px;">
+      FraudShield AI analyzes suspicious SMS messages, phishing emails and malicious
+      URLs using machine-learning models, giving you instant risk assessments and
+      detailed reports.
+    </p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+      <a href="{% url 'accounts:signup' %}" class="btn btn-info btn-lg fw-semibold text-dark">
+        <i class="bi bi-rocket-takeoff"></i> Get Started Free
+      </a>
+      <a href="{% url 'about:about' %}" class="btn btn-outline-info btn-lg">
+        Learn More
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="mb-5">
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card fs-card h-100">
+        <div class="card-body p-4">
+          <div class="fs-icon-badge mb-3"><i class="bi bi-chat-dots"></i></div>
+          <h5 class="card-title text-white">SMS Analysis</h5>
+          <p class="card-text text-secondary">
+            Screen fraudulent text messages and smishing attempts with a
+            trained classification model.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card fs-card h-100">
+        <div class="card-body p-4">
+          <div class="fs-icon-badge mb-3"><i class="bi bi-envelope-exclamation"></i></div>
+          <h5 class="card-title text-white">Email Analysis</h5>
+          <p class="card-text text-secondary">
+            Identify phishing emails and social-engineering lures before you
+            click a single link.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card fs-card h-100">
+        <div class="card-body p-4">
+          <div class="fs-icon-badge mb-3"><i class="bi bi-link-45deg"></i></div>
+          <h5 class="card-title text-white">URL Analysis</h5>
+          <p class="card-text text-secondary">
+            Evaluate suspicious links for malicious patterns and known
+            attack indicators.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="text-center py-4">
+  <h2 class="h4 text-white mb-3">Ready to secure your communications?</h2>
+  <p class="text-secondary mb-4">Create an account and run your first analysis in minutes.</p>
+  <a href="{% url 'accounts:signup' %}" class="btn btn-info fw-semibold text-dark px-4">
+    Create Your Account
+  </a>
+</section>
+{% endblock %}

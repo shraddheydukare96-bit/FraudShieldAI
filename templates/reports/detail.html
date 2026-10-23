@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report.title }} - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card fs-card">
+      <div class="card-body p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h1 class="h4 text-white mb-0">{{ report.title }}</h1>
+          <span class="badge text-bg-info">Report #{{ report.pk }}</span>
+        </div>
+        <p class="text-secondary small">Created {{ report.created_at|date:"M d, Y H:i" }}</p>
+
+        <h2 class="h6 text-secondary">Summary</h2>
+        <p class="text-white">{{ report.summary|default:"No summary available." }}</p>
+
+        {% if report.detection %}
+          <h2 class="h6 text-secondary mt-4">Linked detection</h2>
+          <p class="text-white mb-0">
+            <a class="link-info text-decoration-none" href="{% url 'detection:detail' report.detection.pk %}">
+              Detection #{{ report.detection.pk }} ({{ report.detection.get_channel_display }})
+            </a>
+          </p>
+        {% endif %}
+
+        <hr class="border-secondary">
+        <a class="btn btn-outline-info" href="{% url 'reports:index' %}">
+          <i class="bi bi-arrow-left"></i> Back to reports
+        </a>
+        {% include "partials/report_actions.html" with report=report email_state=email_state next_path=request.path %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

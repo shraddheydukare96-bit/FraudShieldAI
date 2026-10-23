@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 text-white mb-1">Welcome, {{ user.username }}</h1>
+    <p class="text-secondary mb-0">Your fraud analysis command center.</p>
+  </div>
+  <a href="{% url 'detection:analyze' %}" class="btn btn-info fw-semibold text-dark">
+    <i class="bi bi-cpu"></i> New Analysis
+  </a>
+</div>
+
+<!-- Stat cards (all real database counts) -->
+<div class="row g-4 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="fs-stat p-4 text-center">
+      <div class="fs-stat-value">{{ total_analyses }}</div>
+      <div class="text-secondary small text-uppercase">Total Analyses</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="fs-stat p-4 text-center">
+      <div class="fs-stat-value text-success">{{ safe_count }}</div>
+      <div class="text-secondary small text-uppercase">Safe</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="fs-stat p-4 text-center">
+      <div class="fs-stat-value" style="color:#f0ad4e">{{ suspicious_count }}</div>
+      <div class="text-secondary small text-uppercase">Suspicious</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="fs-stat p-4 text-center">
+      <div class="fs-stat-value text-danger">{{ high_risk_count }}</div>
+      <div class="text-secondary small text-uppercase">High-Risk</div>
+    </div>
+  </div>
+</div>
+
+{% if has_data %}
+<!-- Charts -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-4">
+    <div class="card fs-card h-100">
+      <div class="card-body">
+        <h2 class="h6 text-white mb-3">Analyses by Type</h2>
+        <canvas id="channelChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card fs-card h-100">
+      <div class="card-body">
+        <h2 class="h6 text-white mb-3">Risk Distribution</h2>
+        <canvas id="riskChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card fs-card h-100">
+      <div class="card-body">
+        <h2 class="h6 text-white mb-3">Analyses Over Time (30 days)</h2>
+        <canvas id="trendChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent detections -->
+<div class="card fs-card">
+  <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+    <span class="text-white fw-semibold">Recent Detections</span>
+    <a class="link-info text-decoration-none small" href="{% url 'detection:index' %}">View all</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-dark table-hover align-middle mb-0">
+      <tbody>
+        {% for detection in recent_detections %}
+          <tr>
+            <td>
+              <a class="link-info text-decoration-none" href="{% url 'detection:detail' detection.pk %}">
+                {{ detection.get_channel_display }} #{{ detection.pk }}
+              </a>
+            </td>
+            <td class="text-truncate text-secondary" style="max-width:320px;">{{ detection.content|truncatechars:50 }}</td>
+            <td>
+              {% if detection.classification == 'fraud' %}
+                <span class="badge text-bg-danger">Fraud</span>
+              {% elif detection.classification == 'inconclusive' %}
+                <span class="badge text-bg-warning">Suspicious</span>
+              {% else %}
+                <span class="badge text-bg-success">Safe</span>
+              {% endif %}
+            </td>
+            <td class="text-secondary small text-end">{{ detection.created_at|date:"M d H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<!-- Empty state -->
+<div class="card fs-card">
+  <div class="card-body p-5 text-center">
+    <div class="fs-icon-badge mb-3 mx-auto"><i class="bi bi-inbox"></i></div>
+    <h2 class="h5 text-white">No analyses yet</h2>
+    <p class="text-secondary">
+      Run your first SMS, email or URL analysis to populate your dashboard with
+      real results and statistics.
+    </p>
+    <a href="{% url 'detection:analyze' %}" class="btn btn-info fw-semibold text-dark">
+      <i class="bi bi-cpu"></i> Start an Analysis
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{{ charts|json_script:"chartsData" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    const el = document.getElementById("chartsData");
+    if (!el) return;
+    const data = JSON.parse(el.textContent);
+    Chart.defaults.color = "#8ea2c0";
+    Chart.defaults.borderColor = "#1c2942";
+
+    new Chart(document.getElementById("channelChart"), {
+      type: "doughnut",
+      data: {
+        labels: data.channel.labels,
+        datasets: [{ data: data.channel.data, backgroundColor: ["#22d3ee", "#4f8cff", "#a06bff"] }],
+      },
+      options: { plugins: { legend: { position: "bottom" } } },
+    });
+
+    new Chart(document.getElementById("riskChart"), {
+      type: "pie",
+      data: {
+        labels: data.risk.labels,
+        datasets: [{ data: data.risk.data, backgroundColor: data.risk.colors }],
+      },
+      options: { plugins: { legend: { position: "bottom" } } },
+    });
+
+    new Chart(document.getElementById("trendChart"), {
+      type: "line",
+      data: {
+        labels: data.trend.labels,
+        datasets: [{
+          label: "Analyses",
+          data: data.trend.data,
+          borderColor: "#22d3ee",
+          backgroundColor: "rgba(34,211,238,0.15)",
+          tension: 0.3,
+          fill: true,
+        }],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { maxTicksLimit: 8 } } },
+      },
+    });
+  })();
+</script>
+{% endblock %}

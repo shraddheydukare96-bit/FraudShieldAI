@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Notification preferences - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card fs-card">
+      <div class="card-body p-4 p-md-5">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <div>
+            <h1 class="h3 text-white mb-1">Notification preferences</h1>
+            <p class="text-secondary mb-0">Control what FraudShield emails you and how often.</p>
+          </div>
+          {% if email_verified %}
+            <span class="badge text-bg-success"><i class="bi bi-patch-check"></i> Verified</span>
+          {% else %}
+            <span class="badge text-bg-warning"><i class="bi bi-exclamation-circle"></i> Email unverified</span>
+          {% endif %}
+        </div>
+
+        {% if not email_verified %}
+          <div class="alert alert-warning">
+            <i class="bi bi-info-circle"></i>
+            Reports and alerts will only be delivered after you verify
+            <strong>{{ user_email }}</strong>.
+            <a class="alert-link" href="{% url 'accounts:verify_sent' %}">Resend link</a>.
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="form-check form-switch mb-3">
+            {{ form.high_risk_alerts }}
+            <label class="form-check-label" for="{{ form.high_risk_alerts.id_for_label }}">
+              {{ form.high_risk_alerts.label }}
+            </label>
+          </div>
+          <div class="form-check form-switch mb-3">
+            {{ form.report_attach_to_email }}
+            <label class="form-check-label" for="{{ form.report_attach_to_email.id_for_label }}">
+              {{ form.report_attach_to_email.label }}
+            </label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.summary_frequency.id_for_label }}">
+              {{ form.summary_frequency.label }}
+            </label>
+            {{ form.summary_frequency }}
+            {% for error in form.summary_frequency.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+            {% if form.summary_frequency.help_text %}
+              <div class="form-text">{{ form.summary_frequency.help_text }}</div>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn btn-info fw-semibold text-dark">
+            <i class="bi bi-save"></i> Save preferences
+          </button>
+          <a class="btn btn-outline-info" href="{% url 'accounts:profile' %}">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

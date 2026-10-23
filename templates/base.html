@@ -1,0 +1,142 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FraudShield AI - AI-powered cybersecurity analysis for SMS, email and URLs.">
+  <title>{% block title %}FraudShield AI{% endblock %}</title>
+
+  <!-- Bootstrap 5 (dark theme) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Custom cybersecurity theme -->
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="fs-body d-flex flex-column min-vh-100">
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg fs-nav sticky-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="{% url 'home' %}">
+        <i class="bi bi-shield-lock text-info"></i> FraudShield<span class="fs-brand-accent">AI</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#mainNav" aria-controls="mainNav"
+              aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+               href="{% url 'home' %}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'about' in request.resolver_match.namespace %}active{% endif %}"
+               href="{% url 'about:about' %}">About</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}"
+               href="{% url 'about:contact' %}">Contact</a>
+          </li>
+          {% if user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'dashboard' in request.resolver_match.namespace %}active{% endif %}"
+               href="{% url 'dashboard:index' %}">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'detection' in request.resolver_match.namespace %}active{% endif %}"
+               href="{% url 'detection:index' %}">Analysis</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'reports' in request.resolver_match.namespace %}active{% endif %}"
+               href="{% url 'reports:index' %}">Reports</a>
+          </li>
+          {% endif %}
+        </ul>
+
+        <ul class="navbar-nav ms-auto">
+          {% if user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+               aria-expanded="false">
+              <i class="bi bi-person-circle"></i> {{ user.username }}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end fs-dropdown">
+              <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                <i class="bi bi-id-card"></i> Profile</a></li>
+              <li><a class="dropdown-item" href="{% url 'accounts:preferences' %}">
+                <i class="bi bi-bell"></i> Notification preferences</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form action="{% url 'accounts:logout' %}" method="post" class="px-3 py-1">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-info btn-sm w-100">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                  </button>
+                </form>
+              </li>
+            </ul>
+          </li>
+          {% else %}
+          <li class="nav-item">
+            <a class="btn btn-outline-info btn-sm ms-lg-2 my-1 my-lg-0"
+               href="{% url 'accounts:login' %}">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-info btn-sm text-dark fw-semibold ms-lg-2 my-1 my-lg-0"
+               href="{% url 'accounts:signup' %}">Sign Up</a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash messages -->
+  <main class="flex-grow-1">
+    <div class="container py-4">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="fs-footer mt-auto">
+    <div class="container py-4">
+      <div class="row gy-3 align-items-center">
+        <div class="col-md-6">
+          <div class="fw-bold text-info mb-1">
+            <i class="bi bi-shield-lock"></i> FraudShield AI
+          </div>
+          <div class="small text-secondary">
+            AI-powered detection for fraudulent SMS, email and malicious URLs.
+          </div>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <a class="link-secondary text-decoration-none me-3" href="{% url 'about:about' %}">About</a>
+          <a class="link-secondary text-decoration-none me-3" href="{% url 'about:contact' %}">Contact</a>
+          <span class="small text-secondary">&copy; {% now "Y" %} FraudShield AI</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

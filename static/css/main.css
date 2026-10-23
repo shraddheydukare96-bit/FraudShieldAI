@@ -1,0 +1,244 @@
+/* ==========================================================================
+   FraudShield AI - Cybersecurity theme
+   Dark navy background with cyan accents, built on top of Bootstrap 5.
+   ========================================================================== */
+
+:root {
+  --fs-bg: #070b18;
+  --fs-bg-elev: #0d1428;
+  --fs-navy: #0f1c3f;
+  --fs-panel: #111a30;
+  --fs-border: #1c2942;
+  --fs-cyan: #22d3ee;
+  --fs-cyan-soft: rgba(34, 211, 238, 0.12);
+  --fs-text: #e6edf7;
+  --fs-muted: #8ea2c0;
+}
+
+.fs-body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(34, 211, 238, 0.08), transparent),
+    radial-gradient(900px 500px at 0% 0%, rgba(15, 28, 63, 0.6), transparent),
+    var(--fs-bg);
+  color: var(--fs-text);
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Navigation */
+.fs-nav {
+  background: rgba(7, 11, 24, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--fs-border);
+}
+
+.fs-nav .nav-link {
+  color: var(--fs-muted);
+  font-weight: 500;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.85rem;
+}
+
+.fs-nav .nav-link:hover,
+.fs-nav .nav-link.active {
+  color: var(--fs-cyan);
+  background: var(--fs-cyan-soft);
+}
+
+.fs-brand-accent {
+  color: var(--fs-cyan);
+}
+
+/* Hero */
+.fs-hero {
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.10), rgba(15, 28, 63, 0.55)),
+    var(--fs-bg-elev);
+  border: 1px solid var(--fs-border);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+/* Cards */
+.fs-card {
+  background: var(--fs-panel);
+  border: 1px solid var(--fs-border);
+  border-radius: 1rem;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fs-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--fs-cyan);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.fs-icon-badge {
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background: var(--fs-cyan-soft);
+  color: var(--fs-cyan);
+  font-size: 1.35rem;
+}
+
+/* Auth + form panels */
+.fs-auth-card {
+  max-width: 460px;
+  margin-inline: auto;
+}
+
+.form-control,
+.form-select {
+  background: var(--fs-bg-elev);
+  border: 1px solid var(--fs-border);
+  color: var(--fs-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: var(--fs-bg-elev);
+  color: var(--fs-text);
+  border-color: var(--fs-cyan);
+  box-shadow: 0 0 0 0.2rem var(--fs-cyan-soft);
+}
+
+label.form-label {
+  color: var(--fs-text);
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn-info {
+  --bs-btn-bg: var(--fs-cyan);
+  --bs-btn-border-color: var(--fs-cyan);
+  --bs-btn-hover-bg: #4de3f7;
+  --bs-btn-hover-border-color: #4de3f7;
+  --bs-btn-color: #04121a;
+}
+
+/* Stats (dashboard) */
+.fs-stat {
+  background: var(--fs-panel);
+  border: 1px solid var(--fs-border);
+  border-radius: 1rem;
+}
+
+.fs-stat .fs-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--fs-cyan);
+}
+
+/* Footer */
+.fs-footer {
+  background: var(--fs-bg-elev);
+  border-top: 1px solid var(--fs-border);
+}
+
+/* Alerts + helpers */
+.text-secondary { color: var(--fs-muted) !important; }
+
+.alert-success { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6ee7b7; }
+.alert-info    { background: var(--fs-cyan-soft); border-color: rgba(34, 211, 238, 0.35); color: var(--fs-cyan); }
+.alert-danger  { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+.alert-warning { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #fcd34d; }
+
+/* Navbar dropdown */
+.fs-dropdown {
+  background: var(--fs-panel);
+  border: 1px solid var(--fs-border);
+}
+
+.fs-dropdown .dropdown-item {
+  color: var(--fs-text);
+}
+
+.fs-dropdown .dropdown-item:hover {
+  background: var(--fs-cyan-soft);
+  color: var(--fs-cyan);
+}
+
+.fs-dropdown .dropdown-divider { border-color: var(--fs-border); }
+
+/* ==========================================================================
+   About page - "Meet Our Team"
+   ========================================================================== */
+.fs-team .display-6 {
+  letter-spacing: 0.02em;
+}
+
+.fs-team-card {
+  overflow: hidden;
+  position: relative;
+  opacity: 0;
+  /* Reveal animation; per-card delay added below via :nth-child. */
+  animation: fsTeamRise 0.5s ease-out forwards;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .fs-team-card { animation: none; opacity: 1; }
+  .fs-team-photo { transition: none !important; }
+}
+
+.fs-team .col:nth-child(1) .fs-team-card { animation-delay: 0.00s; }
+.fs-team .col:nth-child(2) .fs-team-card { animation-delay: 0.10s; }
+.fs-team .col:nth-child(3) .fs-team-card { animation-delay: 0.20s; }
+.fs-team .col:nth-child(4) .fs-team-card { animation-delay: 0.30s; }
+
+@keyframes fsTeamRise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fs-team-photo {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--fs-border);
+  background: var(--fs-bg-elev);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.fs-team-card:hover .fs-team-photo {
+  transform: scale(1.05);
+  border-color: var(--fs-cyan);
+  box-shadow: 0 10px 26px rgba(34, 211, 238, 0.25);
+}
+
+.fs-team-role {
+  color: var(--fs-cyan);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.fs-team-links {
+  margin-top: auto;
+}
+
+.fs-team-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  color: var(--fs-muted);
+  background: var(--fs-bg-elev);
+  border: 1px solid var(--fs-border);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.fs-team-link:hover {
+  color: var(--fs-cyan);
+  border-color: var(--fs-cyan);
+  background: var(--fs-cyan-soft);
+  transform: translateY(-2px);
+}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Login - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="fs-auth-card">
+  <div class="card fs-card">
+    <div class="card-body p-4 p-md-5">
+      <div class="text-center mb-4">
+        <div class="fs-icon-badge mb-2"><i class="bi bi-fingerprint"></i></div>
+        <h1 class="h3 text-white">Secure Login</h1>
+        <p class="text-secondary small mb-0">Access your fraud analysis dashboard.</p>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-info w-100 fw-semibold text-dark py-2">
+          <i class="bi bi-box-arrow-in-right"></i> Log In
+        </button>
+      </form>
+
+      <p class="text-center text-secondary small mt-4 mb-0">
+        New to FraudShield AI?
+        <a class="link-info text-decoration-none" href="{% url 'accounts:signup' %}">Create an account</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

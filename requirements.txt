@@ -1,0 +1,31 @@
+# ---------------------------------------------------------------------------
+# FraudShield AI - Python dependencies
+# Pinned for Phase 1 (Django foundation). AI/reporting packages are added in
+# later phases and listed in the commented section below.
+# ---------------------------------------------------------------------------
+
+Django==5.1.15
+python-dotenv==1.2.4
+whitenoise==6.12.0
+
+# PostgreSQL driver (production). SQLite is used locally with no extra driver.
+psycopg2-binary==2.9.13
+
+# Phase 3: machine-learning baseline (scikit-learn text classification).
+scikit-learn==1.5.2
+numpy==2.5.4
+joblib==1.6.0
+
+# Phase 3/reports: PDF report generation.
+reportlab==5.1.0
+
+# Reports: chart generation embedded in PDFs (matplotlib always renders to
+# in-memory PNGs; no display server needed).
+matplotlib==3.11.2
+
+# About page: image processing for Django ImageField uploads (team photos).
+Pillow==13.0.0
+
+# Deployment (Render): app server and DATABASE_URL parsing for PostgreSQL.
+gunicorn==26.2.0
+dj-database-url==3.1.2

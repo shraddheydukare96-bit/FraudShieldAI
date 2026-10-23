@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Detection #{{ detection.pk }} - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card fs-card">
+      <div class="card-body p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h1 class="h4 text-white mb-0">Detection #{{ detection.pk }}</h1>
+          {% if detection.classification == 'fraud' %}
+            <span class="badge text-bg-danger"><i class="bi bi-exclamation-triangle"></i> HIGH RISK</span>
+          {% elif detection.classification == 'inconclusive' %}
+            <span class="badge text-bg-warning"><i class="bi bi-question-circle"></i> SUSPICIOUS</span>
+          {% else %}
+            <span class="badge text-bg-success"><i class="bi bi-check-circle"></i> SAFE</span>
+          {% endif %}
+        </div>
+
+        <dl class="row">
+          <dt class="col-sm-3 text-secondary">Channel</dt>
+          <dd class="col-sm-9 text-white">{{ detection.get_channel_display }}</dd>
+
+          <dt class="col-sm-3 text-secondary">Risk percentage</dt>
+          <dd class="col-sm-9">
+            {% if risk_percent is not None %}
+              {% if risk_percent >= 70 %}
+                <span class="badge text-bg-danger fs-5">{{ risk_percent }}%</span>
+              {% elif risk_percent >= 30 %}
+                <span class="badge text-bg-warning fs-5">{{ risk_percent }}%</span>
+              {% else %}
+                <span class="badge text-bg-success fs-5">{{ risk_percent }}%</span>
+              {% endif %}
+              <span class="text-secondary small ms-2">of 100 (converted from the stored risk score)</span>
+            {% else %}
+              <span class="badge text-bg-secondary">Score unavailable</span>
+              <span class="text-secondary small ms-2">No valid risk score was stored for this analysis.</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Raw risk score</dt>
+          <dd class="col-sm-9 text-white">
+            {{ detection.risk_score|floatformat:3|default:"-" }}
+            <span class="text-secondary small">
+              ({% if detection.score_kind == 'probability' %}model probability - confidence, kept separate from the risk percentage{% else %}rule-based heuristic{% endif %})
+            </span>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Detector</dt>
+          <dd class="col-sm-9 text-white">
+            {{ detection.source|default:"-" }}
+            {% if detection.model_version %}<span class="text-secondary small">({{ detection.model_version }})</span>{% endif %}
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Analyzed</dt>
+          <dd class="col-sm-9 text-white">{{ detection.created_at|date:"M d, Y H:i" }}</dd>
+        </dl>
+
+        <h2 class="h6 text-secondary">Content</h2>
+        <pre class="bg-black border border-secondary-subtle rounded p-3 text-white small">{{ detection.content }}</pre>
+
+        {% if detection.signals %}
+          <h2 class="h6 text-secondary mt-4">Supporting signals</h2>
+          <ul class="mb-0">
+            {% for signal in detection.signals %}
+              <li class="text-white small">{{ signal }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if detection.recommendations %}
+          <h2 class="h6 text-secondary mt-4">Recommendations</h2>
+          <ul class="mb-0">
+            {% for rec in detection.recommendations %}
+              <li class="text-white small">{{ rec }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <hr class="border-secondary">
+
+        {% if risk_percent is not None or history_counts.total %}
+        <div class="row g-4 my-1">
+          {% if risk_percent is not None %}
+          <div class="col-md-6">
+            <div class="p-3 rounded bg-black border border-secondary-subtle h-100">
+              <h2 class="h6 text-secondary">Risk for this analysis</h2>
+              <canvas id="riskPie" height="200"></canvas>
+              <p class="text-secondary small mb-0 mt-2">Risk percentage vs the remaining percentage out of 100 for this single analysis - not the distribution of all detections.</p>
+            </div>
+          </div>
+          {% endif %}
+          {% if history_counts.total %}
+          <div class="col-md-6">
+            <div class="p-3 rounded bg-black border border-secondary-subtle h-100">
+              <h2 class="h6 text-secondary">My detection history</h2>
+              <canvas id="historyPie" height="200"></canvas>
+              <p class="text-secondary small mb-0 mt-2">Actual stored counts across all your analyses.</p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% if report %}
+          {% include "partials/report_actions.html" with report=report email_state=email_state next_path=detection.get_absolute_url|default:request.path %}
+        {% endif %}
+
+        <hr class="border-secondary">
+        <a class="btn btn-outline-info" href="{% url 'detection:index' %}">
+          <i class="bi bi-arrow-left"></i> Back to history
+        </a>
+        <a class="btn btn-info text-dark fw-semibold" href="{% url 'detection:analyze' %}">
+          <i class="bi bi-cpu"></i> New analysis
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ risk_pie_json|json_script:"riskPieData" }}
+{{ history_counts_json|json_script:"historyPieData" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  (function () {
+    if (!window.Chart) return;
+    Chart.defaults.color = "#8ea2c0";
+    Chart.defaults.borderColor = "#1c2942";
+    const riskEl = document.getElementById("riskPieData");
+    const riskCanvas = document.getElementById("riskPie");
+    if (riskEl && riskCanvas) {
+      const data = JSON.parse(riskEl.textContent);
+      new Chart(riskCanvas, {
+        type: "pie",
+        data: {
+          labels: ["Risk ({{ risk_percent }}%)", "Remaining"],
+          datasets: [{ data: data, backgroundColor: ["#dc3545", "#33415c"], borderColor: "#0f1c3f" }],
+        },
+        options: { plugins: { legend: { position: "bottom" } } },
+      });
+    }
+    const histEl = document.getElementById("historyPieData");
+    const histCanvas = document.getElementById("historyPie");
+    if (histEl && histCanvas) {
+      const c = JSON.parse(histEl.textContent);
+      new Chart(histCanvas, {
+        type: "pie",
+        data: {
+          labels: ["Safe (" + c.safe + ")", "Suspicious (" + c.suspicious + ")", "High risk (" + c.high_risk + ")"],
+          datasets: [{ data: [c.safe, c.suspicious, c.high_risk], backgroundColor: ["#198754", "#d39e00", "#dc3545"], borderColor: "#0f1c3f" }],
+        },
+        options: { plugins: { legend: { position: "bottom" } } },
+      });
+    }
+  })();
+</script>
+{% endblock %}

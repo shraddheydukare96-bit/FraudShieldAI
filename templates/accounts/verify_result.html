@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Email verification - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="fs-auth-card">
+  <div class="card fs-card">
+    <div class="card-body p-4 p-md-5 text-center">
+      <div class="fs-icon-badge mb-3">
+        {% if status == 'ok' or status == 'already_verified' %}
+          <i class="bi bi-shield-check text-success"></i>
+        {% else %}
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+        {% endif %}
+      </div>
+
+      {% if status == 'ok' %}
+        <h1 class="h3 text-white">Email verified</h1>
+        <p class="text-secondary">
+          Thanks {{ target_user }}! Report delivery and alerts are now enabled
+          for your address.
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+          <a class="btn btn-info text-dark fw-semibold" href="{% url 'reports:index' %}">
+            <i class="bi bi-file-earmark-text"></i> Back to my reports
+          </a>
+          <a class="btn btn-outline-info" href="{% url 'accounts:preferences' %}">
+            Configure notifications
+          </a>
+        </div>
+      {% elif status == 'already_verified' %}
+        <h1 class="h3 text-white">Already verified</h1>
+        <p class="text-secondary">This address has already been confirmed. No further action needed.</p>
+        <a class="btn btn-outline-info" href="{% url 'dashboard:index' %}">Back to dashboard</a>
+      {% elif status == 'expired' %}
+        <h1 class="h3 text-white">Link expired</h1>
+        <p class="text-secondary">Verification links are only valid for 24 hours. Request a new one below.</p>
+      {% elif status == 'already_used' %}
+        <h1 class="h3 text-white">Link already used</h1>
+        <p class="text-secondary">That token has already been redeemed. Request a new link if you still need to verify.</p>
+      {% else %}
+        <h1 class="h3 text-white">Invalid link</h1>
+        <p class="text-secondary">We couldn't recognise that verification link.</p>
+      {% endif %}
+
+      {% if can_resend %}
+        <form method="post" action="{% url 'accounts:verify_resend' %}" class="mt-3">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-info text-dark fw-semibold">
+            <i class="bi bi-arrow-repeat"></i> Send a new link
+          </button>
+        </form>
+        <p class="text-secondary small mt-2">You'll need to be signed in.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

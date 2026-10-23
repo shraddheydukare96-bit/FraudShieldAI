@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}My Reports - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="h3 text-white mb-1"><i class="bi bi-file-earmark-text text-info"></i> My Reports</h1>
+  <p class="text-secondary mb-0">Reports generated from your analyses. Private to your account.</p>
+</div>
+
+<div class="row g-4">
+  {% for report in reports %}
+    <div class="col-md-6">
+      <div class="card fs-card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <h2 class="h6 text-white mb-1">{{ report.title }}</h2>
+            <span class="badge text-bg-info">Report #{{ report.pk }}</span>
+          </div>
+          <p class="text-secondary small mb-3">
+            {{ report.created_at|date:"M d, Y H:i" }}
+            {% if report.detection %} &middot; linked to detection #{{ report.detection.pk }}{% endif %}
+          </p>
+          <a class="btn btn-sm btn-outline-info" href="{% url 'reports:detail' report.pk %}">Open</a>
+          <a class="btn btn-sm btn-info text-dark fw-semibold" href="{% url 'reports:pdf' report.pk %}">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12">
+      <div class="card fs-card">
+        <div class="card-body text-center text-secondary py-5">
+          You have no reports yet. Every completed analysis automatically creates
+          a downloadable PDF report here.
+          <a class="link-info" href="{% url 'detection:analyze' %}">Run your first analysis</a>.
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

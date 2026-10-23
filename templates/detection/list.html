@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis History - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 text-white mb-1"><i class="bi bi-clock-history text-info"></i> Analysis History</h1>
+    <p class="text-secondary mb-0">Your detections. Only you can see these records.</p>
+  </div>
+  <a class="btn btn-info fw-semibold text-dark" href="{% url 'detection:analyze' %}">
+    <i class="bi bi-cpu"></i> New Analysis
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card fs-card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-12 col-md-3">
+        <label class="form-label small text-secondary">{{ filter_form.q.label }}</label>
+        {{ filter_form.q }}
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small text-secondary">{{ filter_form.channel.label }}</label>
+        {{ filter_form.channel }}
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small text-secondary">{{ filter_form.classification.label }}</label>
+        {{ filter_form.classification }}
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small text-secondary">{{ filter_form.date_from.label }}</label>
+        {{ filter_form.date_from }}
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small text-secondary">{{ filter_form.date_to.label }}</label>
+        {{ filter_form.date_to }}
+      </div>
+      <div class="col-12 col-md-12 d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-info btn-sm text-dark fw-semibold">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+        {% if has_filters %}
+          <a href="{% url 'detection:index' %}" class="btn btn-outline-info btn-sm">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card fs-card">
+  <div class="table-responsive">
+    <table class="table table-dark table-hover align-middle mb-0">
+      <thead>
+        <tr class="text-secondary">
+          <th scope="col">#</th>
+          <th scope="col">Type</th>
+          <th scope="col">Content</th>
+          <th scope="col">Outcome</th>
+          <th scope="col">Risk</th>
+          <th scope="col">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for detection in detections %}
+          <tr>
+            <td><a class="link-info text-decoration-none" href="{% url 'detection:detail' detection.pk %}">{{ detection.pk }}</a></td>
+            <td><span class="badge text-bg-info">{{ detection.get_channel_display }}</span></td>
+            <td class="text-truncate" style="max-width: 300px;">{{ detection.content|truncatechars:55 }}</td>
+            <td>
+              {% if detection.classification == 'fraud' %}
+                <span class="badge text-bg-danger">Fraud</span>
+              {% elif detection.classification == 'inconclusive' %}
+                <span class="badge text-bg-warning">Suspicious</span>
+              {% elif detection.classification == 'legitimate' %}
+                <span class="badge text-bg-success">Safe</span>
+              {% elif detection.is_fraud %}
+                <span class="badge text-bg-danger">Fraud</span>
+              {% else %}
+                <span class="badge text-bg-success">Legitimate</span>
+              {% endif %}
+            </td>
+            <td class="text-secondary small">{{ detection.risk_score|floatformat:2|default:"-" }}</td>
+            <td class="text-secondary small">{{ detection.created_at|date:"M d, Y H:i" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-secondary py-5">
+              {% if has_filters %}
+                No analyses match your filters.
+                <a class="link-info" href="{% url 'detection:index' %}">Clear filters</a>.
+              {% else %}
+                No analyses yet.
+                <a class="link-info" href="{% url 'detection:analyze' %}">Run your first analysis</a>.
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Previous</a>
+      </li>
+    {% endif %}
+    <li class="page-item disabled">
+      <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    </li>
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Next</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

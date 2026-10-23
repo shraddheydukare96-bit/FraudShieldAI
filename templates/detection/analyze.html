@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}New Analysis - FraudShield AI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h3 text-white mb-0"><i class="bi bi-search text-info"></i> New Analysis</h1>
+      <a class="btn btn-outline-info btn-sm" href="{% url 'detection:index' %}">History</a>
+    </div>
+
+    {% if not model_available %}
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>Text model unavailable.</strong> SMS and email classification needs a trained
+        model. Run <code>python manage.py train_model</code> to create it. URL analysis works now.
+      </div>
+    {% endif %}
+
+    <div class="card fs-card">
+      <div class="card-body p-4 p-md-5">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.channel.id_for_label }}">{{ form.channel.label }}</label>
+            {{ form.channel }}
+            <div class="form-text text-secondary small">{{ form.channel.help_text }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
+            {{ form.content }}
+            {% for error in form.content.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-info fw-semibold text-dark">
+            <i class="bi bi-cpu"></i> Analyze
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <p class="text-secondary small mt-3 mb-0">
+      FraudShield AI does not visit submitted URLs during analysis. Detection
+      results are estimates based on a small baseline model and rule-based
+      features, not guarantees.
+    </p>
+  </div>
+</div>
+{% endblock %}

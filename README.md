@@ -1,3 +1,4 @@
+HEAD
 # FraudShield AI
 
 An AI-powered cybersecurity web application for detecting fraudulent SMS
@@ -234,3 +235,5 @@ written at runtime is lost on every deploy/restart:
 
 > This section documents the configuration only. Nothing here deploys, commits,
 > or pushes the site.
+# FraudShieldAI
+18f08f2dd4a1ff62e2c1827d2a74c83e30909968

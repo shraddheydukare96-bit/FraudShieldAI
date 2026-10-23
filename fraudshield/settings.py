@@ -48,16 +48,28 @@ if not SECRET_KEY:
         "DJANGO_SECRET_KEY must be set in the environment when DEBUG=False."
     )
 
-# Hostnames/domains this instance may serve (comma-separated). Include Render's
-# assigned *.onrender.com domain and any custom domain via DJANGO_ALLOWED_HOSTS.
-ALLOWED_HOSTS = [
+# Hostnames/domains this instance may serve. Comma-separated values in
+# DJANGO_ALLOWED_HOSTS are split and whitespace-stripped so a list like
+# "host-a.com, host-b.com" parses correctly. We always keep the local
+# development hosts AND the deployed Render hostname, so the site boots and
+# serves correctly out of the box (this is the fix for the DisallowedHost error
+# on fraudshieldai-e5eg.onrender.com) even when DJANGO_ALLOWED_HOSTS is unset.
+# Extra/override hosts can still be supplied via DJANGO_ALLOWED_HOSTS.
+_RENDER_HOST = "fraudshieldai-e5eg.onrender.com"
+_BASE_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", _RENDER_HOST]
+_extra_hosts = [
     h.strip()
-    for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+    for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
     if h.strip()
 ]
 
+ALLOWED_HOSTS = []
+for _host in _BASE_HOSTS + _extra_hosts:
+    if _host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_host)
+
 # The canonical site origin is always a valid host for its own app, so add the
-# SITE_URL hostname automatically (avoids a self-inflicted 400 on the real
+# SITE_URL hostname automatically (avoids a self-inflicted 400 on a custom
 # domain while still refusing arbitrary Host headers when SITE_URL is unset).
 _site_origin = (os.getenv("SITE_URL", "") or "").strip().rstrip("/")
 _site_host = ""
@@ -72,16 +84,19 @@ if _site_origin:
 if DEBUG and "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("testserver")
 
-# CSRF over HTTPS behind Render's proxy requires the full trusted origin
-# (scheme + host). Configure via CSRF_TRUSTED_ORIGINS and/or let it be derived
-# from SITE_URL so the deployed HTTPS origin is always trusted for POSTs.
-CSRF_TRUSTED_ORIGINS = [
+# CSRF over HTTPS requires the full trusted origin (scheme + host). We always
+# trust the deployed Render origin so HTTPS POSTs (login, verification resend,
+# contact, report email) pass validation, and additionally include any origins
+# from CSRF_TRUSTED_ORIGINS and the configured SITE_URL.
+_extra_origins = [
     o.strip()
     for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
     if o.strip()
 ]
-if _site_origin and _site_origin not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(_site_origin)
+CSRF_TRUSTED_ORIGINS = []
+for _origin in ([f"https://{_RENDER_HOST}"] + _extra_origins + ([_site_origin] if _site_origin else [])):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 
 # --------------------------------------------------------------------------- #
 # Applications
@@ -170,6 +185,24 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+
+# Guard against the silent SQLite fallback in production. Render's filesystem is
+# ephemeral: a SQLite file created at build time is wiped on every restart or
+# redeploy, which surfaces at runtime as "OperationalError: no such table" for
+# auth_user, about_teammember, etc. If the site is deployed with DEBUG=False but
+# no persistent database is attached, fail fast and loudly at boot (and during
+# `manage.py migrate`) instead of serving broken pages from a throwaway SQLite.
+# Local development (DEBUG=True) is unaffected and keeps using the SQLite file.
+if not DEBUG and not _database_url and not (
+    env_bool("USE_POSTGRES", False) or os.getenv("POSTGRES_DB")
+):
+    raise ImproperlyConfigured(
+        "Production (DEBUG=False) needs a persistent database: set "
+        "DATABASE_URL to a PostgreSQL connection string (e.g. a Render or Neon "
+        "Postgres instance) before deploying. SQLite on Render's ephemeral "
+        "filesystem loses all tables on restart. Local development with "
+        "DEBUG=True is unaffected and continues to use SQLite."
+    )
 
 # --------------------------------------------------------------------------- #
 # Password validation (secure hashing is provided by Django's default PBKDF2)

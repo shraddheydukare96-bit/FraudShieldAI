@@ -1,10 +1,12 @@
 """Automated tests for the authentication + email verification system."""
+import io
 from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from django.core import mail
+from django.core.management import call_command, CommandError
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -719,3 +721,85 @@ class PreferencesViewTests(TestCase):
         )
         mallory_prefs = NotificationPreferences.objects.get(user=self.intruder)
         self.assertEqual(mallory_prefs.summary_frequency, "off")
+
+
+class CreateAdminCommandTests(TestCase):
+    """Tests for the interactive create_admin management command.
+
+    input() and getpass.getpass() are patched so the command can be driven
+    without a TTY. The password value itself is never asserted or printed.
+    """
+
+    COMMAND = "create_admin"
+
+    @mock.patch("accounts.management.commands.create_admin.getpass.getpass",
+                side_effect=[VALID_PASSWORD, VALID_PASSWORD])
+    @mock.patch("builtins.input", side_effect=["rootadmin", "root@example.com"])
+    def test_creates_superuser_with_flags_and_hashed_password(self, _input, _getpass):
+        out = io.StringIO()
+        call_command(self.COMMAND, stdout=out)
+
+        admin = User.objects.get(username="rootadmin")
+        self.assertTrue(admin.is_staff)
+        self.assertTrue(admin.is_superuser)
+        self.assertTrue(admin.is_active)
+        self.assertEqual(admin.email, "root@example.com")
+        # Password is usable and stored hashed (not in plaintext).
+        self.assertTrue(admin.check_password(VALID_PASSWORD))
+        self.assertNotEqual(admin.password, VALID_PASSWORD)
+        self.assertTrue(admin.password.startswith("pbkdf2_"))
+        # The password never leaks into the command output.
+        self.assertNotIn(VALID_PASSWORD, out.getvalue())
+
+    @mock.patch("accounts.management.commands.create_admin.getpass.getpass")
+    @mock.patch("builtins.input", side_effect=["existinguser"])
+    def test_existing_username_is_left_untouched(self, _input, getpass_mock):
+        existing = User.objects.create_user(
+            username="existinguser",
+            email="old@example.com",
+            password="An0ther!Valid-77",
+        )
+        original_hash = existing.password
+
+        call_command(self.COMMAND)
+
+        # Command stopped before ever prompting for a password.
+        getpass_mock.assert_not_called()
+        existing.refresh_from_db()
+        self.assertEqual(existing.password, original_hash)  # password unchanged
+        self.assertFalse(existing.is_superuser)  # flags unchanged
+        self.assertEqual(User.objects.filter(username="existinguser").count(), 1)
+
+    @mock.patch("accounts.management.commands.create_admin.getpass.getpass",
+                side_effect=["short", VALID_PASSWORD, VALID_PASSWORD])
+    @mock.patch("builtins.input", side_effect=["pwdadmin", ""])
+    def test_weak_password_rejected_then_valid_password_accepted(
+        self, _input, _getpass
+    ):
+        # 'short' fails the MinimumLength validator, so the loop re-prompts and
+        # the subsequent valid password + matching confirmation is accepted.
+        call_command(self.COMMAND)
+
+        admin = User.objects.get(username="pwdadmin")
+        self.assertTrue(admin.is_superuser)
+        self.assertTrue(admin.check_password(VALID_PASSWORD))
+
+    @mock.patch("accounts.management.commands.create_admin.getpass.getpass",
+                side_effect=[VALID_PASSWORD, "mismatch9!Diff-1"])
+    @mock.patch("builtins.input", side_effect=["nomatch", ""])
+    def test_password_confirmation_mismatch_loops_until_match(
+        self, _input, getpass_mock
+    ):
+        # Give a mismatched confirmation, then a matching pair; the command must
+        # keep looping and ultimately create using the valid (matching) entry.
+        getpass_mock.side_effect = [
+            VALID_PASSWORD, "different!Value-2",   # mismatch -> retry
+            VALID_PASSWORD, VALID_PASSWORD,         # match -> accept
+        ]
+        call_command(self.COMMAND)
+        self.assertTrue(User.objects.get(username="nomatch").check_password(VALID_PASSWORD))
+
+    @mock.patch("builtins.input", side_effect=[""])
+    def test_blank_username_raises(self, _input):
+        with self.assertRaises(CommandError):
+            call_command(self.COMMAND)

@@ -29,6 +29,12 @@ echo "==> Collecting static files (WhiteNoise)"
 python manage.py collectstatic --noinput
 
 echo "==> Applying database migrations"
+# Log ONLY whether DATABASE_URL is set and the resolved engine/file the build
+# connects to (no secret values), so the build log shows which DB was migrated.
+python -c "import os; print('DATABASE_URL present:', bool(os.getenv('DATABASE_URL')))"
+python manage.py db_health
 python manage.py migrate --noinput
+echo "==> Post-migration table check"
+python manage.py db_health
 
 echo "==> Build complete"

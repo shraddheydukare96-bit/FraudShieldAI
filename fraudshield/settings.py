@@ -205,6 +205,38 @@ if not DEBUG and not _database_url and not (
     )
 
 # --------------------------------------------------------------------------- #
+# Startup database diagnostics (SAFE). Logged at WARNING so it always appears in
+# Render's runtime log, proving which engine + file the WEB PROCESS opens. This
+# is how we tell a "migrate never ran" deploy apart from a "wrong DATABASE_URL"
+# one. We print only the engine and, for SQLite, the absolute file path (not a
+# secret). For PostgreSQL we print only the database NAME - never host, user,
+# password, or the full DATABASE_URL.
+# --------------------------------------------------------------------------- #
+import logging as _logging  # noqa: E402
+
+
+def _safe_database_descriptor():
+    db = DATABASES["default"]
+    engine = (db.get("ENGINE", "") or "").rsplit(".", 1)[-1] or "unknown"
+    if "sqlite" in engine:
+        return engine, str(db.get("NAME"))
+    if "postgresql" in engine:
+        return engine, db.get("NAME", "") or "(local socket)"
+    return engine, "(hidden)"
+
+
+_db_engine, _db_location = _safe_database_descriptor()
+_logging.getLogger("fraudshield.db").warning(
+    "Django database in use: engine=%s location=%s DEBUG=%s",
+    _db_engine, _db_location, DEBUG,
+)
+if "sqlite" in _db_engine and not DEBUG:
+    _logging.getLogger("fraudshield.db").warning(
+        "Production is on SQLite; data will NOT persist across restarts on an "
+        "ephemeral container. Set DATABASE_URL to PostgreSQL for durable data."
+    )
+
+# --------------------------------------------------------------------------- #
 # Password validation (secure hashing is provided by Django's default PBKDF2)
 # --------------------------------------------------------------------------- #
 AUTH_PASSWORD_VALIDATORS = [
